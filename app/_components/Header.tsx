@@ -1,8 +1,10 @@
+"use client"
+
 import { Button } from '@/components/ui/button'
+import { SignInButton } from '@clerk/clerk-react'
 import { ArrowRight } from 'lucide-react'
 import Image from 'next/image'
-import path from 'path'
-import React from 'react'
+
 
 
 const MenuOptions = [
@@ -42,8 +44,11 @@ const Header = () => {
 
             {/* Get Started */}
 
+            <SignInButton mode='modal' forceRedirectUrl={"/workspace"}>
 
-            <Button>Get Started <ArrowRight /> </Button>
+
+                <Button>Get Started <ArrowRight /> </Button>
+            </SignInButton>
         </div>
     )
 }
