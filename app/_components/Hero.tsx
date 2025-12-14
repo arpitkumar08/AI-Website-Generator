@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from '@/components/ui/button'
+import { SignInButton } from '@clerk/clerk-react';
 import { ArrowUp, HomeIcon, ImagePlus, Key, LayoutDashboard, User } from 'lucide-react'
 import React, { useState } from 'react'
 
@@ -47,7 +48,10 @@ const Hero = () => {
                 ></textarea>
                 <div className='flex justify-between items-center'>
                     <Button variant={'ghost'}><ImagePlus /></Button>
-                    <Button><ArrowUp /></Button>
+                    <SignInButton mode='modal' forceRedirectUrl={"/workspace"}>
+
+                        <Button disabled={!userInput}><ArrowUp /></Button>
+                    </SignInButton>
                 </div>
             </div>
 
@@ -56,8 +60,8 @@ const Hero = () => {
             <div className='flex mt-4 gap-4'>
                 {suggestions.map((suggestion, index) => (
                     <Button
-                    onClick={() => setUserInput(suggestion.prompt)}
-                    key={index} variant={'outline'}>
+                        onClick={() => setUserInput(suggestion.prompt)}
+                        key={index} variant={'outline'}>
                         <suggestion.icon />
                         {suggestion.label}</Button>
                 ))}
