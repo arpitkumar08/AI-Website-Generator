@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { SignInButton } from '@clerk/clerk-react'
 import { ArrowRight } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 
 
@@ -47,7 +48,9 @@ const Header = () => {
             <SignInButton mode='modal' forceRedirectUrl={"/workspace"}>
 
 
-                <Button>Get Started <ArrowRight /> </Button>
+                <Link href={"/workspace"}>
+                    <Button>Get Started <ArrowRight /> </Button>
+                </Link>
             </SignInButton>
         </div>
     )
