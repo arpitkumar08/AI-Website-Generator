@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import UserProvider from "@/app/provider";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -22,6 +23,7 @@ export default function RootLayout({
         <ClerkProvider>
           <UserProvider>
             {children}
+            <Toaster />
           </UserProvider>
         </ClerkProvider>
       </body>
