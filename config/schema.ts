@@ -4,6 +4,7 @@ import {
   timestamp,
   varchar,
   jsonb,
+  text,
 } from "drizzle-orm/pg-core";
 
 /* ================= USERS ================= */
@@ -30,6 +31,7 @@ export const projectTable = pgTable("projects", {
 export const frameTable = pgTable("frames", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   frameId: varchar({ length: 255 }).notNull(),
+  designCode: text(),
   projectId: varchar({ length: 255 }).references(
     () => projectTable.projectId
   ),
@@ -41,6 +43,7 @@ export const frameTable = pgTable("frames", {
 export const chatTable = pgTable("chats", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   chatMessage: jsonb().notNull(),
+  frameId: varchar().references(() => frameTable.frameId),
   createdBy: varchar({ length: 255 }).references(() => usersTable.email),
   createdOn: timestamp().defaultNow(),
 });
