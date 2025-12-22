@@ -27,17 +27,36 @@ const ChatSection = ({ messages, onSend, loading }: Props) => {
   return (
     <div className="w-96 shadow h-[91vh] p-2 flex flex-col">
       <div className="flex-1 overflow-y-auto space-y-3">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"
+        {messages.map((msg, i) => {
+          const isHTML =
+            msg.role === "assistant" &&
+            msg.content.trim().startsWith("<")
+
+          return (
+            <div
+              key={i}
+              className={`flex ${
+                msg.role === "user" ? "justify-end" : "justify-start"
               }`}
-          >
-            <div className="p-2 rounded-lg bg-gray-200 max-w-[80%]">
-              {msg.content}
+            >
+              {isHTML ? (
+                <pre className="bg-zinc-900 text-green-400 p-3 rounded-lg max-w-[90%] overflow-x-auto text-xs">
+                  <code>{msg.content}</code>
+                </pre>
+              ) : (
+                <div
+                  className={`p-2 rounded-lg max-w-[80%] text-sm ${
+                    msg.role === "user"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-black"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         {loading && (
           <div className="flex items-center justify-center py-4">
@@ -47,7 +66,6 @@ const ChatSection = ({ messages, onSend, loading }: Props) => {
             </div>
           </div>
         )}
-
       </div>
 
       <div className="p-3 border-t flex gap-2 items-center">

@@ -1,10 +1,13 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import PlaygroundHeader from "../_components/PlaygroundHeader"
-import ChatSection from "../_components/ChatSection"
 import { useParams, useSearchParams } from "next/navigation"
 import axios from "axios"
+
+import PlaygroundHeader from "../_components/PlaygroundHeader"
+import ChatSection from "../_components/ChatSection"
+import WebsiteDesign from "../_components/WebsiteDesign"
+import { toast } from "sonner"
 
 /* ================= TYPES ================= */
 
@@ -13,45 +16,32 @@ export type Message = {
   content: string
 }
 
-export type Frame = {
-  projectId: string
-  frameId: string
-  designCode: string | null
-  chatMessages: Message[]
-}
+/* ================= SINGLE SYSTEM PROMPT ================= */
 
-/* ================= PROMPTS ================= */
+const SYSTEM_PROMPT = `
+You are an AI assistant that can either:
+1) Generate UI code (HTML/CSS), or
+2) Respond with plain text.
 
-// STRICT HTML-ONLY SYSTEM PROMPT
-const SYSTEM_HTML_PROMPT = `
-You are an HTML code generator. Your response must contain ONLY valid HTML code and nothing else.
+Decision rule (VERY IMPORTANT):
+- If the user is asking for ANY kind of screen, page, UI, layout, form, component,
+  website, flow, section, card, visual interface, or design — YOU MUST generate HTML.
+- This includes signup screens, login forms, dashboards, pricing pages, admin panels,
+  profile pages, settings screens, or ANY design-related request.
+- Even vague words like "screen", "page", "form", or "layout" MUST be treated as UI requests.
 
-CRITICAL RULES:
-- Return ONLY HTML code (body content only)
-- NO explanations before or after the code
-- NO markdown code blocks or backticks
-- NO "Here's the code" or "Sure!" or any text
-- NO descriptions or comments
-- Start directly with opening HTML tag (like <div> or <button>)
-- End directly with closing HTML tag
-- Use Tailwind CSS for styling
-- Use blue as primary color theme
-- Make it responsive
+HTML generation rules:
+- Return ONLY valid HTML.
+- BODY CONTENT ONLY (no <html>, <head>, or <body> tags).
+- Use Tailwind CSS.
+- Fully responsive.
+- NO explanations.
+- NO markdown.
+- NO backticks.
 
-Your entire response should be valid HTML that can be immediately inserted into a webpage.
+If the user is NOT asking for a UI or visual interface:
+- Respond with friendly plain text only.
 `
-
-// NORMAL CHAT PROMPT
-const SYSTEM_CHAT_PROMPT = `
-Respond with friendly plain text only.
-`
-
-/* ================= HELPERS ================= */
-
-// YOU decide intent — NOT the model
-const isWebsiteRequest = (text: string) => {
-  return /website|ui|dashboard|html|hero|landing|section|saas/i.test(text)
-}
 
 /* ================= COMPONENT ================= */
 
@@ -60,30 +50,33 @@ const PlayGround = () => {
   const params = useSearchParams()
   const frameId = params.get("frameId")
 
-  const [frameDetail, setFrameDetail] = useState<Frame | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [generatedCode, setGeneratedCode] = useState("")
   const [loading, setLoading] = useState(false)
 
-  /* ================= LOAD FRAME ================= */
+  /* ================= LOAD FRAME ON REFRESH ================= */
 
   useEffect(() => {
-    if (frameId) loadFrame()
-  }, [frameId])
+    if (frameId && projectId) {
+      loadFrame()
+    }
+  }, [frameId, projectId])
 
   const loadFrame = async () => {
-    const res = await axios.get(
-      `/api/frames?frameId=${frameId}&projectId=${projectId}`
-    )
+    try {
+      const res = await axios.get("/api/frames", {
+        params: { frameId, projectId },
+      })
 
-    console.log("📦 FRAME DATA:", res.data)
+      if (res.data?.designCode) {
+        setGeneratedCode(res.data.designCode)
+      }
 
-    setFrameDetail(res.data)
-    setMessages(res.data.chatMessages ?? [])
-
-    if (res.data?.chatMessages?.length == 1) {
-      const userMsg = res.data?.chatMessages[0].content;
-      sendMessage(userMsg)
+      if (res.data?.chatMessages) {
+        setMessages(res.data.chatMessages)
+      }
+    } catch (err) {
+      console.error("Failed to load frame", err)
     }
   }
 
@@ -95,10 +88,7 @@ const PlayGround = () => {
     setLoading(true)
     setGeneratedCode("")
 
-    // Show user message immediately
     setMessages(prev => [...prev, { role: "user", content: userInput }])
-
-    const wantsHTML = isWebsiteRequest(userInput)
 
     try {
       const res = await fetch("/api/ai-model", {
@@ -106,24 +96,13 @@ const PlayGround = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [
-            {
-              role: "system",
-              content: wantsHTML
-                ? SYSTEM_HTML_PROMPT
-                : SYSTEM_CHAT_PROMPT,
-            },
-            {
-              role: "user",
-              content: userInput,
-            },
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: userInput },
           ],
         }),
       })
 
-      if (!res.ok) {
-        console.error("❌ API ERROR:", await res.text())
-        return
-      }
+      if (!res.ok) throw new Error("API failed")
 
       const reader = res.body?.getReader()
       if (!reader) return
@@ -131,59 +110,58 @@ const PlayGround = () => {
       const decoder = new TextDecoder()
       let aiResponse = ""
 
-      // Silently accumulate chunks
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-
-        const chunk = decoder.decode(value, { stream: true })
-        aiResponse += chunk
+        aiResponse += decoder.decode(value, { stream: true })
       }
 
-      // Clean console output
-      if (wantsHTML) {
-        console.log("✨ GENERATED HTML CODE:")
-        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        console.log(aiResponse.trim())
-        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      const cleanedResponse = aiResponse
+        .replace(/```[a-z]*|```/gi, "")
+        .trim()
 
-        setGeneratedCode(aiResponse.trim())
+      // 🔑 SIMPLE DETECTION: HTML vs TEXT
+      if (cleanedResponse.startsWith("<")) {
+        setGeneratedCode(cleanedResponse)
         setMessages(prev => [
           ...prev,
-          { role: "assistant", content: "✅ Your code is ready! Check console." },
+          { role: "assistant", content: "✅ Website generated successfully." },
         ])
       } else {
-        console.log("💬 AI RESPONSE:", aiResponse.trim())
-
         setMessages(prev => [
           ...prev,
-          { role: "assistant", content: aiResponse.trim() },
+          { role: "assistant", content: cleanedResponse },
         ])
       }
     } catch (err) {
-      console.error("❌ SendMessage error:", err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
+  /* ================= SAVE HTML ONLY ================= */
 
   useEffect(() => {
-    if (messages.length > 0) {
-      SaveMessages()
+    if (
+      !loading &&
+      generatedCode &&
+      generatedCode.startsWith("<")
+    ) {
+      saveGeneratedCode()
     }
-  }, [messages])
+  }, [generatedCode, loading])
 
-
-  const SaveMessages = async () => {
-    const result = await axios.put('/api/chats', {
-      messages: messages,
-      frameId: frameId
+  const saveGeneratedCode = async () => {
+    await axios.put("/api/frames", {
+      designCode: generatedCode,
+      frameId,
+      projectId,
     })
 
-    console.log(result);
-
+    toast.success("Website is Ready!")
   }
+
   /* ================= RENDER ================= */
 
   return (
@@ -197,8 +175,7 @@ const PlayGround = () => {
           loading={loading}
         />
 
-        {/* Ready when you want */}
-        {/* <WebsiteDesign code={generatedCode} /> */}
+        <WebsiteDesign generatedCode={generatedCode} />
       </div>
     </div>
   )
