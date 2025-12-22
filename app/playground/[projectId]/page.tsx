@@ -81,7 +81,7 @@ const PlayGround = () => {
     setFrameDetail(res.data)
     setMessages(res.data.chatMessages ?? [])
 
-    if(res.data?.chatMessages?.length==1){
+    if (res.data?.chatMessages?.length == 1) {
       const userMsg = res.data?.chatMessages[0].content;
       sendMessage(userMsg)
     }
@@ -146,7 +146,7 @@ const PlayGround = () => {
         console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         console.log(aiResponse.trim())
         console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        
+
         setGeneratedCode(aiResponse.trim())
         setMessages(prev => [
           ...prev,
@@ -154,7 +154,7 @@ const PlayGround = () => {
         ])
       } else {
         console.log("💬 AI RESPONSE:", aiResponse.trim())
-        
+
         setMessages(prev => [
           ...prev,
           { role: "assistant", content: aiResponse.trim() },
@@ -167,6 +167,23 @@ const PlayGround = () => {
     }
   }
 
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      SaveMessages()
+    }
+  }, [messages])
+
+
+  const SaveMessages = async () => {
+    const result = await axios.put('/api/chats', {
+      messages: messages,
+      frameId: frameId
+    })
+
+    console.log(result);
+
+  }
   /* ================= RENDER ================= */
 
   return (
