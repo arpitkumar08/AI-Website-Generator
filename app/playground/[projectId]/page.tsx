@@ -125,7 +125,7 @@ const PlayGround = () => {
         setGeneratedCode(cleanedResponse)
         setMessages(prev => [
           ...prev,
-          { role: "assistant", content: "✅ Website generated successfully." },
+          { role: "assistant", content: "Your Code is Ready!" },
         ])
       } else {
         setMessages(prev => [
