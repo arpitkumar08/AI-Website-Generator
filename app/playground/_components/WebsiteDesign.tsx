@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import WebPageTools from "./WebPageTools"
+import ElementSettingSection from "./ElementSettingSection"
 
 type Props = {
   generatedCode: string
@@ -33,6 +34,7 @@ const HTML_CODE = (body: string) => `
 function WebsiteDesign({ generatedCode }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [selectedScreenSize, setSelectedScreenSize] = useState("web")
+  const [selectedElement, setSelectedElement] = useState<HTMLElement | null>();
 
   useEffect(() => {
     if (!iframeRef.current) return
@@ -83,6 +85,9 @@ function WebsiteDesign({ generatedCode }: Props) {
       selectedEl.style.outline = "2px solid red"
       selectedEl.setAttribute("contenteditable", "true")
       selectedEl.focus()
+      console.log("Selected Element: ", selectedEl);
+      setSelectedElement(selectedEl)
+
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -108,20 +113,24 @@ function WebsiteDesign({ generatedCode }: Props) {
   }, [generatedCode]) // ✅ IMPORTANT dependency
 
   return (
-    <div className="p-5 w-full flex flex-col items-center gap-4">
-      <iframe
-        ref={iframeRef}
-        className={`${
-          selectedScreenSize === "web" ? "w-full" : "w-[375px]"
-        } h-[600px] border-2 rounded-xl`}
-        sandbox="allow-scripts allow-same-origin"
-      />
+    <div className="flex gap-2 w-full">
 
-      <WebPageTools
-        selectedScreenSize={selectedScreenSize}
-        setSelectedScreenSize={setSelectedScreenSize}
-        generatedCode={generatedCode}
-      />
+      <div className="p-5 w-full flex flex-col items-center gap-4">
+        <iframe
+          ref={iframeRef}
+          className={`${selectedScreenSize === "web" ? "w-full" : "w-[375px]"
+            } h-[600px] border-2 rounded-xl`}
+          sandbox="allow-scripts allow-same-origin"
+        />
+
+        <WebPageTools
+          selectedScreenSize={selectedScreenSize}
+          setSelectedScreenSize={setSelectedScreenSize}
+          generatedCode={generatedCode}
+        />
+      </div>
+      {/* @ts-ignore */}
+      <ElementSettingSection selectedEl={selectedElement} clearSelection={() => setSelectedElement(null)} />
     </div>
   )
 }
